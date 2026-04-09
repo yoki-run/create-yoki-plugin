@@ -1,0 +1,19 @@
+{
+  "name": "create-yoki-plugin",
+  "version": "1.0.0",
+  "description": "Scaffold a new Yoki plugin in seconds",
+  "bin": {
+    "create-yoki-plugin": "index.js"
+  },
+  "keywords": ["yoki", "plugin", "scaffold", "create", "init", "launcher"],
+  "author": "Yoki",
+  "license": "MIT",
+  "homepage": "https://github.com/xssmusashi/create-yoki-plugin",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xssmusashi/create-yoki-plugin"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}
