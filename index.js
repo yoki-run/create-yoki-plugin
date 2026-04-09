@@ -172,55 +172,7 @@ function pyMain(opts) {
   return `#!/usr/bin/env python3
 """${opts.name} — ${opts.description}"""
 
-import sys
-import json
-
-try:
-    sys.stdout.reconfigure(encoding="utf-8")
-    sys.stderr.reconfigure(encoding="utf-8")
-except Exception:
-    pass
-
-
-def read_input():
-    try:
-        raw = sys.stdin.read()
-        return json.loads(raw) if raw.strip() else {}
-    except Exception:
-        return {}
-
-
-def write_response(resp):
-    json.dump(resp, sys.stdout, ensure_ascii=False)
-    sys.stdout.write("\\n")
-    sys.stdout.flush()
-
-
-def detail(markdown, metadata=None, actions=None):
-    out = {"type": "detail", "markdown": markdown}
-    if metadata:
-        out["metadata"] = metadata
-    if actions:
-        out["actions"] = actions
-    return out
-
-
-def list_response(items):
-    return {"type": "list", "items": items}
-
-
-def background(hud, notification=None):
-    out = {"type": "background", "hud": hud}
-    if notification:
-        out["notification"] = notification
-    return out
-
-
-def error(msg, details=None):
-    out = {"type": "error", "error": msg}
-    if details:
-        out["details"] = details
-    return out
+from yoki_plugin_sdk import read_input, write_response, detail, error, esc_html
 
 
 def main():
@@ -268,7 +220,7 @@ ${opts.description}
 
 \`\`\`bash
 git clone <repo-url> ~/yoki/plugins/${opts.dirName}
-${opts.lang === "js" ? "npm install  # if using @yoki/plugin-sdk" : "# No dependencies needed"}
+${opts.lang === "js" ? "npm install  # installs @yoki/plugin-sdk" : "pip install yoki-plugin-sdk"}
 \`\`\`
 
 Requires: **Yoki >= 1.0.4.0**${opts.lang === "js" ? ", **Node.js >= 14**" : ", **Python 3.8+**"}
@@ -346,7 +298,7 @@ async function main() {
     README.md         documentation${lang === "js" ? "\n    package.json       npm config with @yoki/plugin-sdk" : ""}
 
   Next steps:
-    1. ${lang === "js" ? `cd ${dirName} && npm install` : `cd ${dirName}`}
+    1. ${lang === "js" ? `cd ${dirName} && npm install` : `cd ${dirName} && pip install yoki-plugin-sdk`}
     2. Edit main${ext} with your logic
     3. Copy to ~/yoki/plugins/${dirName}
     4. Type '${keyword}' in Yoki to test
