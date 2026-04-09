@@ -13,7 +13,7 @@ const fs = require("fs")
 const path = require("path")
 const readline = require("readline")
 
-const SCHEMA_URL = "https://raw.githubusercontent.com/xssmusashi/yoki/main/plugin.schema.json"
+const SCHEMA_URL = "https://raw.githubusercontent.com/yoki-run/yoki/main/plugin.schema.json"
 
 // ---- Interactive prompts (pure stdlib, no dependencies) ----
 
@@ -169,6 +169,59 @@ main()
 }
 
 function pyMain(opts) {
+  if (opts.mode === "list") {
+    return `#!/usr/bin/env python3
+"""${opts.name} — ${opts.description}"""
+
+from yoki_plugin_sdk import read_input, write_response, list
+
+
+def main():
+    inp = read_input()
+    query = (inp.get("query") or "").lower()
+
+    all_items = [
+        {"id": "1", "title": "First item", "subtitle": "Description of first item"},
+        {"id": "2", "title": "Second item", "subtitle": "Description of second item"},
+        {"id": "3", "title": "Third item", "subtitle": "Description of third item"},
+    ]
+
+    filtered = [i for i in all_items if not query or query in i["title"].lower()]
+    write_response(list([
+        {**item, "icon": "${opts.icon}", "actions": [
+            {"title": "Copy", "shortcut": "enter", "type": "copy", "value": item["title"]},
+        ]}
+        for item in filtered
+    ]))
+
+
+main()
+`
+  }
+
+  if (opts.mode === "background") {
+    return `#!/usr/bin/env python3
+"""${opts.name} — ${opts.description}"""
+
+from yoki_plugin_sdk import read_input, write_response, background, error
+
+
+def main():
+    inp = read_input()
+    query = inp.get("query") or ""
+
+    if not query:
+        write_response(error("No input", "Usage: ${opts.keyword} <query>"))
+        return
+
+    # Do your side-effect here
+    write_response(background(f"Done: {query}"))
+
+
+main()
+`
+  }
+
   return `#!/usr/bin/env python3
 """${opts.name} — ${opts.description}"""
 
@@ -177,7 +230,7 @@ from yoki_plugin_sdk import read_input, write_response, detail, error, esc_html
 
 def main():
     inp = read_input()
-    query = inp.get("query", "")
+    query = inp.get("query") or ""
 
     if not query:
         write_response(detail(
@@ -192,7 +245,7 @@ def main():
     result = f"You typed: {query}"
     write_response(detail(
         f'<div style="font-family:monospace;padding:16px">'
-        f'<div style="font-size:24px;font-weight:bold;color:#4FC3F7">{result}</div>'
+        f'<div style="font-size:24px;font-weight:bold;color:#4FC3F7">{esc_html(result)}</div>'
         f"</div>",
         [{"label": "Input", "value": query}],
         [{"title": "Copy", "type": "copy", "value": result}],
@@ -204,9 +257,53 @@ main()
 }
 
 function rbMain(opts) {
+  if (opts.mode === "list") {
+    return `#!/usr/bin/env ruby
+# frozen_string_literal: true
+# ${opts.name} — ${opts.description}
+
+require "yoki_plugin_sdk"
+
+input = Yoki.read_input
+query = (input["query"] || "").downcase
+
+items = [
+  { id: "1", title: "First item", subtitle: "Description of first item" },
+  { id: "2", title: "Second item", subtitle: "Description of second item" },
+  { id: "3", title: "Third item", subtitle: "Description of third item" },
+]
+
+filtered = query.empty? ? items : items.select { |i| i[:title].downcase.include?(query) }
+Yoki.write_response(Yoki.list(filtered.map { |i|
+  i.merge(icon: "${opts.icon}", actions: [
+    { title: "Copy", shortcut: "enter", type: "copy", value: i[:title] },
+  ])
+}))
+`
+  }
+
+  if (opts.mode === "background") {
+    return `#!/usr/bin/env ruby
+# frozen_string_literal: true
+# ${opts.name} — ${opts.description}
+
+require "yoki_plugin_sdk"
+
+input = Yoki.read_input
+query = input["query"] || ""
+
+if query.empty?
+  Yoki.write_response(Yoki.error("No input", details: "Usage: ${opts.keyword} <query>"))
+  exit
+end
+
+# Do your side-effect here
+Yoki.write_response(Yoki.background("Done: #{query}"))
+`
+  }
+
   return `#!/usr/bin/env ruby
 # frozen_string_literal: true
-
 # ${opts.name} — ${opts.description}
 
 require "yoki_plugin_sdk"
