@@ -203,6 +203,39 @@ main()
 `
 }
 
+function rbMain(opts) {
+  return `#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# ${opts.name} — ${opts.description}
+
+require "yoki_plugin_sdk"
+
+input = Yoki.read_input
+query = input["query"] || ""
+
+if query.empty?
+  Yoki.write_response(Yoki.detail(
+    '<div style="font-family:monospace;padding:16px">' \\
+    '<h2 style="margin:0 0 12px">${opts.name}</h2>' \\
+    '<p style="color:#888">${opts.description}</p>' \\
+    '<p style="margin-top:8px">Type <code>${opts.keyword} &lt;query&gt;</code></p>' \\
+    "</div>"
+  ))
+  exit
+end
+
+result = "You typed: #{query}"
+Yoki.write_response(Yoki.detail(
+  '<div style="font-family:monospace;padding:16px">' \\
+  "<div style=\\"font-size:24px;font-weight:bold;color:#4FC3F7\\">#{Yoki.esc_html(result)}</div>" \\
+  "</div>",
+  metadata: [{ label: "Input", value: query }],
+  actions:  [{ title: "Copy", type: "copy", value: result }]
+))
+`
+}
+
 function gitignore() {
   return `node_modules/
 data/
@@ -223,7 +256,7 @@ git clone <repo-url> ~/yoki/plugins/${opts.dirName}
 ${opts.lang === "js" ? "npm install  # installs @yoki/plugin-sdk" : "pip install yoki-plugin-sdk"}
 \`\`\`
 
-Requires: **Yoki >= 1.0.4.0**${opts.lang === "js" ? ", **Node.js >= 14**" : ", **Python 3.8+**"}
+Requires: **Yoki >= 1.0.4.0**${opts.lang === "js" ? ", **Node.js >= 14**" : opts.lang === "py" ? ", **Python 3.8+**" : ", **Ruby >= 2.7**"}
 
 ## Usage
 
@@ -249,9 +282,11 @@ async function main() {
   const author = await ask(rl, "Author", "")
   const icon = await ask(rl, "Icon (emoji or name)", "🔌")
 
-  const langIdx = await choose(rl, "Language:", ["JavaScript (Node.js)", "Python"], 0)
-  const lang = langIdx === 0 ? "js" : "py"
-  const ext = lang === "js" ? ".js" : ".py"
+  const langIdx = await choose(rl, "Language:", ["JavaScript (Node.js)", "Python", "Ruby"], 0)
+  const langs = ["js", "py", "rb"]
+  const exts = [".js", ".py", ".rb"]
+  const lang = langs[langIdx]
+  const ext = exts[langIdx]
 
   const modeIdx = await choose(rl, "Default mode:", ["detail (rich card)", "list (searchable items)", "background (side-effect)"], 0)
   const modes = ["detail", "list", "background"]
@@ -274,7 +309,8 @@ async function main() {
 
   fs.mkdirSync(dir, { recursive: true })
   fs.writeFileSync(path.join(dir, "plugin.json"), pluginJson(opts))
-  fs.writeFileSync(path.join(dir, `main${ext}`), lang === "js" ? jsMain(opts) : pyMain(opts))
+  const mainCode = lang === "js" ? jsMain(opts) : lang === "py" ? pyMain(opts) : rbMain(opts)
+  fs.writeFileSync(path.join(dir, `main${ext}`), mainCode)
   fs.writeFileSync(path.join(dir, ".gitignore"), gitignore())
   fs.writeFileSync(path.join(dir, "README.md"), readmeTemplate(opts))
 
@@ -298,7 +334,7 @@ async function main() {
     README.md         documentation${lang === "js" ? "\n    package.json       npm config with @yoki/plugin-sdk" : ""}
 
   Next steps:
-    1. ${lang === "js" ? `cd ${dirName} && npm install` : `cd ${dirName} && pip install yoki-plugin-sdk`}
+    1. ${lang === "js" ? `cd ${dirName} && npm install` : lang === "py" ? `cd ${dirName} && pip install yoki-plugin-sdk` : `cd ${dirName} && gem install yoki-plugin-sdk`}
     2. Edit main${ext} with your logic
     3. Copy to ~/yoki/plugins/${dirName}
     4. Type '${keyword}' in Yoki to test
